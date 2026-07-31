@@ -15,6 +15,7 @@
 - 单主题 `agent-memory`。
 - 多主题目录结构。
 - arXiv 作为唯一论文来源。
+- `scan` 使用 arXiv API 的 `submittedDate` 时间窗口真实获取候选论文。
 - 本地 HTML 选择页。
 - dry-run Markdown 生成。
 - dry-run 微信发布结果。
@@ -35,6 +36,7 @@
 
 - 保存 PDF、源元数据和解析文本。
 - 接入 batch overview 和 paper interpretation skill。
+- 请生成 batch paper overview skill，对过去一段时间围绕某一主题的 paper，按照一定的逻辑顺序，进行观察性概览介绍，介绍每篇文章时表明文章标题、作者、原文链接以及发表时间。
 - 为每个 Artifact 记录 prompt 版本、skill 名称和生成时间。
 - 对失败生成保留可重试状态。
 
@@ -66,7 +68,7 @@
 范围：
 
 - 增加更多 Topic 配置。
-- 接入 alphaXiv。
+- 接入 alphaXiv。alphaXiv 当前优先通过独立来源客户端接入，不与 `ArxivClient` 混写。
 - 增加重复检测和推荐排序。
 - 累积多周期运行记录，用于调整主题关键词。
 

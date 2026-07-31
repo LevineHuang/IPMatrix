@@ -5,9 +5,9 @@ from pathlib import Path
 
 from ipmatrix.pipeline.analysis import analyze_run_dry
 from ipmatrix.pipeline.config import load_topic_config
-from ipmatrix.pipeline.discovery import ArxivClient, discover_candidates
 from ipmatrix.pipeline.publishing import publish_run_dry
 from ipmatrix.pipeline.review import review_run
+from ipmatrix.pipeline.scan import scan_topic
 from ipmatrix.pipeline.selection import build_selection_html
 from ipmatrix.pipeline.storage import PipelineStorage
 
@@ -47,14 +47,14 @@ def main(argv=None) -> int:
     storage = PipelineStorage(root)
 
     if args.command == "scan":
-        topic = load_topic_config(root, args.topic_id)
         run_date = date.fromisoformat(args.today) if args.today else date.today()
-        run = storage.create_run(topic, today=run_date)
-        atom_text = Path(args.from_file).read_text(encoding="utf-8") if args.from_file else ArxivClient().fetch(topic)
-        candidates = discover_candidates(topic, atom_text, today=run_date, limit=topic.max_candidates)
-        storage.write_stage(topic.id, run["id"], "candidates", candidates)
-        storage.update_run_status(topic.id, run["id"], "candidates_ready")
-        print(json.dumps({"run_id": run["id"], "candidates": len(candidates)}, ensure_ascii=False))
+        result = scan_topic(
+            root,
+            args.topic_id,
+            today=run_date,
+            from_file=Path(args.from_file) if args.from_file else None,
+        )
+        print(json.dumps(result, ensure_ascii=False))
         return 0
 
     if args.command == "select":

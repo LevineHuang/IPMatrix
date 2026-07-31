@@ -17,10 +17,19 @@ ATOM_NS = {
 class ArxivClient:
     base_url = "https://export.arxiv.org/api/query"
 
-    def build_query_url(self, topic: TopicConfig, max_results: int = None) -> str:
+    def build_query_url(
+        self,
+        topic: TopicConfig,
+        max_results: int = None,
+        window_start: date = None,
+        window_end: date = None,
+    ) -> str:
         include_terms = [f'all:"{term}"' for term in topic.query_include]
         exclude_terms = [f'ANDNOT all:"{term}"' for term in topic.query_exclude]
         search_query = " OR ".join(include_terms)
+        if window_start and window_end:
+            date_range = f"submittedDate:[{_arxiv_date_start(window_start)} TO {_arxiv_date_end(window_end)}]"
+            search_query = f"({search_query}) AND {date_range}"
         if exclude_terms:
             search_query = f"({search_query}) " + " ".join(exclude_terms)
         params = {
@@ -32,8 +41,19 @@ class ArxivClient:
         }
         return f"{self.base_url}?{urllib.parse.urlencode(params)}"
 
-    def fetch(self, topic: TopicConfig, max_results: int = None) -> str:
-        url = self.build_query_url(topic, max_results=max_results)
+    def fetch(
+        self,
+        topic: TopicConfig,
+        max_results: int = None,
+        window_start: date = None,
+        window_end: date = None,
+    ) -> str:
+        url = self.build_query_url(
+            topic,
+            max_results=max_results,
+            window_start=window_start,
+            window_end=window_end,
+        )
         request = urllib.request.Request(
             url,
             headers={"User-Agent": "IPMatrix/0.1.0 (local-first paper pipeline)"},
@@ -42,10 +62,17 @@ class ArxivClient:
             return response.read().decode("utf-8")
 
 
-def discover_candidates(topic: TopicConfig, atom_text: str, today: date = None, limit: int = None) -> List[dict]:
+def discover_candidates(
+    topic: TopicConfig,
+    atom_text: str,
+    today: date = None,
+    limit: int = None,
+    window_start: date = None,
+    window_end: date = None,
+) -> List[dict]:
     today = today or date.today()
     max_results = limit or topic.max_candidates
-    papers = parse_arxiv_atom(atom_text)
+    papers = _filter_papers_by_window(parse_arxiv_atom(atom_text), window_start, window_end)
     candidates = []
     for paper in papers[:max_results]:
         reason = f"Matches topic {topic.id}: " + ", ".join(topic.query_include[:3])
@@ -133,3 +160,33 @@ def _date(value: str) -> str:
 
 def _space(value: str) -> str:
     return " ".join(value.split())
+
+
+def _filter_papers_by_window(papers: List[dict], window_start: date = None, window_end: date = None) -> List[dict]:
+    if not window_start or not window_end:
+        return papers
+    filtered = []
+    for paper in papers:
+        published = _parse_date(paper.get("published_date", ""))
+        updated = _parse_date(paper.get("updated_date", ""))
+        if _date_in_window(published, window_start, window_end) or _date_in_window(updated, window_start, window_end):
+            filtered.append(paper)
+    return filtered
+
+
+def _parse_date(value: str):
+    if not value:
+        return None
+    return date.fromisoformat(value)
+
+
+def _date_in_window(value, window_start: date, window_end: date) -> bool:
+    return value is not None and window_start <= value <= window_end
+
+
+def _arxiv_date_start(value: date) -> str:
+    return value.strftime("%Y%m%d") + "0000"
+
+
+def _arxiv_date_end(value: date) -> str:
+    return value.strftime("%Y%m%d") + "2359"

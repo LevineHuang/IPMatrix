@@ -203,6 +203,11 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# IPMatrix local pipeline runtime outputs
+data/
+drafts/
+outputs/
+
 # Ruff stuff:
 .ruff_cache/
 

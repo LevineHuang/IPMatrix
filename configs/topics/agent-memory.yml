@@ -1,0 +1,32 @@
+id: agent-memory
+name: Agent memory
+enabled: true
+
+schedule:
+  interval_days: 7
+  lookback_days: 7
+  max_candidates_multiplier: 3
+
+sources:
+  - arxiv
+
+query:
+  include:
+    - agent memory
+    - memory agent
+    - long-term memory agent
+    - LLM memory
+    - retrieval augmented generation
+    - personal knowledge management
+  exclude:
+    - biological memory
+    - human memory
+    - neuroscience
+
+ranking:
+  prefer_recent: true
+  min_relevance_score: 0.5
+
+publishing:
+  target: wechat
+  mode: dry-run
